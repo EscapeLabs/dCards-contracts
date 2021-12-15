@@ -78,13 +78,14 @@
 ;; SIP009: Transfer token to a specified principal
 ;; the token-id has to be owned by the sender? validated inside nft-transfer
 (define-public (transfer (token-id uint) (sender principal) (recipient principal))
-  (asserts! (or
-              (is-eq tx-sender sender)
-              (is-approved-with-owner token-id contract-caller (unwrap! (nft-get-owner? dcards-nft token-id) (err u404)))
-              (handle-postman-transfer token-id)) 
-	    (err u403))
-    ;; nft-transfer? fails if sender is not owner
-    (nft-transfer? dcards-nft token-id sender recipient))
+  (begin
+    (asserts! (or
+                (is-eq tx-sender sender)
+                (is-approved-with-owner token-id contract-caller (unwrap! (nft-get-owner? dcards-nft token-id) (err u404)))
+                (handle-postman-transfer token-id))
+        (err u403))
+      ;; nft-transfer? fails if sender is not owner
+      (nft-transfer? dcards-nft token-id sender recipient)))
 
 ;; Transfer token to a specified principal with a memo
 (define-public (transfer-memo (id uint) (sender principal) (recipient principal) (memo (buff 34)))
