@@ -2,9 +2,6 @@
 ;; NFT contract for stacks cards
 ;; https://cards.layerc.xyz
 
-
-;; (impl-trait .nft-trait.nft-trait)
-
 ;; contract name
 (define-non-fungible-token dcards-nft uint)
 
@@ -13,10 +10,10 @@
 (define-data-var mint-price uint u3000000)
 (define-data-var current-mint-price uint u3000000)
 
-;; Store the last issues token ID
+;; Store the last issued token ID
 (define-data-var last-id uint u0)
 
-;; postman-wallet can transfer tokens
+;; postman-wallet can transfer tokens once
 (define-data-var postman-wallet principal tx-sender) ;; deployer
 
 ;; this has to be the exact length of the string
@@ -41,7 +38,6 @@
     (var-set current-mint-price (var-get mint-price))
     (mint-with-seeds {address: new-owner, seed: seed})))
 
-;; multi-mint
 (define-private (mint-with-seeds (details {address: principal, seed: (buff 128)}))
   (let ((next-id (+ u1 (var-get last-id)))
     (new-owner (get address details))
@@ -54,7 +50,7 @@
     (try! (nft-mint? dcards-nft next-id new-owner))
     (var-set last-id next-id)
     (map-insert seeds next-id seed) ;; ensures that token-id is unique
-    (print {minted: next-id, seed: seed})
+    (print {action: "mint", minted: next-id, seed: seed})
     (ok next-id)))
 
 (define-read-only (check-err (result (response uint uint)) (previous-result (response (list 500 uint) {ids: (list 500 uint), error: uint})))
@@ -64,7 +60,7 @@
       error (err {ids: ids, error: error}))
     error (err error)))
 
-;; claim many nfts
+;; mint many nfts
 (define-public (mint-many (details (list 500 {address: principal, seed: (buff 128)})))
   (let ((price (var-get mint-price))
       (length (len details)))
@@ -75,27 +71,29 @@
       price))
     (fold check-err (map mint-with-seeds details) (ok (list)))))
 
-;; get seed for token id
+;; get seed for tokenId
 (define-read-only (get-seed (token-id uint))
   (map-get? seeds token-id))
 
 ;; SIP009: Transfer token to a specified principal
 ;; the token-id has to be owned by the sender? validated inside nft-transfer
 (define-public (transfer (token-id uint) (sender principal) (recipient principal))
-  (if (or
-        (is-eq tx-sender sender)
-        (is-approved-with-owner token-id contract-caller (unwrap! (nft-get-owner? dcards-nft token-id) (err u404)))
-        (handle-postman-transfer token-id))
+  (asserts! (or
+              (is-eq tx-sender sender)
+              (is-approved-with-owner token-id contract-caller (unwrap! (nft-get-owner? dcards-nft token-id) (err u404)))
+              (handle-postman-transfer token-id)) 
+	    (err u403))
     ;; nft-transfer? fails if sender is not owner
-    (nft-transfer? dcards-nft token-id sender recipient)
-    (err u403)))
+    (nft-transfer? dcards-nft token-id sender recipient))
 
 ;; Transfer token to a specified principal with a memo
 (define-public (transfer-memo (id uint) (sender principal) (recipient principal) (memo (buff 34)))
-    (let ((result (transfer id sender recipient)))
+    (begin
+      (try! (transfer id sender recipient))
       (print memo)
-      result))
+      (ok true)))
 
+;; Allow clients to check caller permission without changing claimed map
 (define-read-only (can-transfer (token-id uint) (sender principal) (recipient principal))
   (or (is-eq tx-sender sender)
       (is-approved-with-owner token-id contract-caller (unwrap! (nft-get-owner? dcards-nft token-id) false))
@@ -103,14 +101,14 @@
         (is-eq contract-caller (var-get postman-wallet))
         (not (default-to false (map-get? claimed token-id))))))
 
-;;
-;; operable functions
-
 ;; check postman address and only allow transfer once
 (define-private (handle-postman-transfer (token-id uint))
   (and (is-eq contract-caller (var-get postman-wallet))
     ;; map-insert returns false if entry exists
     (map-insert claimed token-id true)))
+
+;;
+;; operable functions
 
 (define-private (is-approved-with-owner (token-id uint) (operator principal) (owner principal))
   (or
@@ -126,10 +124,10 @@
     (ok (is-approved-with-owner token-id operator owner))))
 
 (define-public (set-approved ( token-id uint) (operator principal) (approved bool))
-	  (ok (map-set approvals {owner: contract-caller, operator: operator, id: token-id} approved)))
+  (ok (map-set approvals {owner: contract-caller, operator: operator, id: token-id} approved)))
 
 (define-public (set-approved-all (operator principal) (approved bool))
-	  (ok (map-set approvals-all {owner: contract-caller, operator: operator} approved)))
+  (ok (map-set approvals-all {owner: contract-caller, operator: operator} approved)))
 
 
 ;; SIP009: Get the owner of the specified token ID
@@ -164,5 +162,5 @@
 
 ;; check status on last mint
 (define-read-only (mint-check)
-  (print {evt: "mint-check", last: (var-get last-id), owner: tx-sender, amount: (var-get mint-price)})
+  (print {evt: "mint-check", last: (var-get last-id), owner: (get-owner (var-get last-id)), amount: (var-get mint-price)})
 )
