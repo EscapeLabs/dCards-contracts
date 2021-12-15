@@ -41,17 +41,21 @@ make test-all
 
 ## Other contracts
 
-- Megapont
-- https://github.com/Megapont/megapont-ape-club-contracts
+- [Megapont](https://github.com/Megapont/megapont-ape-club-contracts)
+- [BoomCrypto](https://github.com/boomcrypto/clarity-deployed-contracts)
 
-- BoomCrypto
-https://github.com/boomcrypto/clarity-deployed-contracts
+Collection from Frieger's [Awesome Stacks](https://github.com/friedger/awesome-stacks-chain#contracts) repo.
 
-
+please ping us or send a PR if you have other contracts you'd like to add!
 
 # Test Suite
 
 Using test functions from here
 
 https://deno.land/x/clarinet@v0.12.0/index.ts
+
+
+## Next steps
+
+It would be good to build a small repo that shows calling these various methods from javascript. If you're interested in working on this please post an issue or contact us!
 
