@@ -7,6 +7,9 @@ test-all:
 test-watch:
 	clarinet test --watch
 
+cov:
+	clarinet test --coverage
+
 cls:
 	clear && printf '\e[3J'
 

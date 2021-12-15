@@ -25,12 +25,12 @@ The contract mint function accepts a 64 byte hex string as seed data.
 This allows deterministic/reproducible outcomes for use cases like algorithmic art.
 This is held in a map.
 
-### get-info function
+### get-info function for metadata SIP-016 (Draft)
 This returns key data of the contract including the seed data.
 This can be provided as metadata to other marketplaces.
 We would suggest reviewing this in process SIP for NFT Metadata:
-https://github.com/stacksgov/sips/issues/17
-
+- [discussion](https://github.com/stacksgov/sips/issues/17)
+- [SIP-016 Draft](https://github.com/stacksgov/sips/blob/37116cdad76bcf5177442a53161be154332a7ad7/sips/sip-16/sip-016-token-metadata.md)
 
 ## How to use
 
